@@ -27,7 +27,7 @@ public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler
         }
         catch (Exception e)
         {
-            // ignored
+            Console.WriteLine(e);
         }
 
         await sending;
@@ -52,12 +52,12 @@ public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler
 
     public async Task<Message?> Read(CancellationToken cancellationToken)
     {
-        var buffer = new byte[1024 * 4];
         WebSocketReceiveResult received;
-        using var messageStream = new MemoryStream();
+        var chunkBuffer = new ArraySegment<byte>(new byte[300]);
+        using var memoryBuffer = new MemoryStream(chunkBuffer.Count);
         do
         {
-            received = await WebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+            received = await WebSocket.ReceiveAsync(chunkBuffer, cancellationToken);
             if (received.CloseStatus.HasValue)
             {
                 // Если получен статус закрытия, тогда в ответ отправить статус закрытия и остановить чтение.
@@ -67,11 +67,11 @@ public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler
 
             if (received.Count > 0)
             {
-                messageStream.Write(buffer, 0, received.Count);
+                memoryBuffer.Write(chunkBuffer.Array, 0, received.Count);
             }
         } while (!received.EndOfMessage && !cancellationToken.IsCancellationRequested);
 
-        var raw = messageStream.ToArray();
+        var raw = memoryBuffer.ToArray();
 
         return new Message(MessageType.Message, []);
     }

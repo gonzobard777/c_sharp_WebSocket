@@ -8,14 +8,13 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
+        // Сервисы и создание приложения.
         builder.Services.AddControllers();
         builder.Services.AddSingleton<MessageHandler>();
-
-
-        // Configure the HTTP request pipeline.
         var app = builder.Build();
 
+
+        // Конфигурирование.
         var webSocketOptions = new WebSocketOptions { KeepAliveInterval = TimeSpan.FromMinutes(2) };
         app.UseWebSockets(webSocketOptions);
 
