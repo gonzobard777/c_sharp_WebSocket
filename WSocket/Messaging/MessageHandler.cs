@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Text;
 using WSocket.Contracts;
 using WSocket.Messaging.Groups;
 using WSocket.Messaging.Messages;
@@ -43,9 +44,10 @@ public class MessageHandler : IDisposable
                     var group = Groups.GetOrAdd(groupId, groupCreator);
 
                     // 3. Добавить пользователя в группу.
-                    if (group.AddConnection(connection))
-                    {
-                    }
+                    var result = group.AddConnection(connection) ? groupId : "";
+
+                    // 4. Отправить результат клиенту.
+                    connection.Send(new Message(MessageType.JoinGroupResponse, result));
                 }
 
                 break;

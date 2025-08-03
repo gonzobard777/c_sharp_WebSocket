@@ -48,7 +48,7 @@ public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler
         {
             if (QueueToSend.TryDequeue(out var message))
             {
-                await WebSocket.SendAsync(new byte[0], WebSocketMessageType.Binary, true, cancellationToken);
+                await WebSocket.SendAsync(message.Raw, WebSocketMessageType.Binary, true, cancellationToken);
             }
 
             if (QueueToSend.IsEmpty)

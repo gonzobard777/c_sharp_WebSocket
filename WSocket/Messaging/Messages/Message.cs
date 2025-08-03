@@ -42,4 +42,18 @@ public class Message
             return _dataRaw;
         }
     }
+
+
+    /// <summary>
+    /// Используется для отправки сообщения на клиент.
+    /// </summary>
+    /// <param name="messageType"></param>
+    /// <param name="content">Данные</param>
+    public Message(MessageType messageType, string content)
+    {
+        var contentBytes = Encoding.UTF8.GetBytes(content);
+        Raw = new byte[1 + contentBytes.Length];
+        Raw[0] = (byte)messageType;
+        Array.Copy(contentBytes, 0, Raw, 1, contentBytes.Length);
+    }
 }
