@@ -14,14 +14,13 @@ public class WebSocketController(MessageHandler messageHandler) : ControllerBase
         {
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
             var connection = new ClientConnection(webSocket, MessageHandler);
-            MessageHandler.AddClientConnection(connection);
             try
             {
                 await connection.Run(cancellationToken);
             }
             finally
             {
-                MessageHandler.RemoveClientConnection(connection);
+                MessageHandler.DisposeClientConnection(connection);
             }
         }
         else

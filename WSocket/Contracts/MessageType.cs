@@ -1,7 +1,11 @@
 ﻿namespace WSocket.Contracts;
 
-public enum MessageType
+public enum MessageType : byte
 {
-    Join = 1,
-    Message = 2,
+    // Войти в группу.
+    JoinGroup = 0,
+    JoinGroupResponse = 1,
+
+    // Сообщение для членов группы.
+    GroupMessage = 2, 
 }

@@ -1,14 +1,14 @@
 ﻿using System.Collections.Concurrent;
 using System.Net.WebSockets;
-using WSocket.Contracts;
+using WSocket.Messaging.Messages;
 
 namespace WSocket.Messaging;
 
-public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler)
+public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler) : IDisposable
 {
     public WebSocket WebSocket { get; } = webSocket;
     private ConcurrentQueue<Message> QueueToSend { get; } = [];
-    public MessageHandler MessageHandler { get; } = messageHandler;
+    private MessageHandler MessageHandler { get; } = messageHandler;
 
     public async Task Run(CancellationToken cancellationToken)
     {
@@ -20,9 +20,9 @@ public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler
         {
             while (WebSocket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
             {
-                var message = await Read(cancellationToken);
-                if (message != null)
-                    MessageHandler.Run(message, cancellationToken);
+                var messageBytes = await Read(cancellationToken);
+                if (messageBytes is { Length: > 0 })
+                    MessageHandler.Run(messageBytes, this, cancellationToken);
             }
         }
         catch (Exception e)
@@ -34,6 +34,12 @@ public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler
     }
 
     /// <summary>
+    /// Добавить новое сообщение в очередь для отправки.
+    /// </summary>
+    /// <param name="message"></param>
+    public void Send(Message message) => QueueToSend.Enqueue(message);
+
+    /// <summary>
     /// Процесс отправки сообщений из очереди.
     /// </summary>
     private async Task Sending(CancellationToken cancellationToken)
@@ -42,7 +48,7 @@ public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler
         {
             if (QueueToSend.TryDequeue(out var message))
             {
-                // await _webSocket.SendAsync(messageBytes, WebSocketMessageType.Text, true, cancellationToken);
+                await WebSocket.SendAsync(new byte[0], WebSocketMessageType.Binary, true, cancellationToken);
             }
 
             if (QueueToSend.IsEmpty)
@@ -50,10 +56,10 @@ public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler
         }
     }
 
-    public async Task<Message?> Read(CancellationToken cancellationToken)
+    public async Task<byte[]?> Read(CancellationToken cancellationToken)
     {
         WebSocketReceiveResult received;
-        var chunkBuffer = new ArraySegment<byte>(new byte[300]);
+        var chunkBuffer = new ArraySegment<byte>(new byte[1024 * 5]); // 5KB(Kilobyte)
         using var memoryBuffer = new MemoryStream(chunkBuffer.Count);
         do
         {
@@ -67,12 +73,27 @@ public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler
 
             if (received.Count > 0)
             {
-                memoryBuffer.Write(chunkBuffer.Array, 0, received.Count);
+                memoryBuffer.Write(chunkBuffer.Array!, 0, received.Count);
             }
         } while (!received.EndOfMessage && !cancellationToken.IsCancellationRequested);
 
-        var raw = memoryBuffer.ToArray();
+        return memoryBuffer.ToArray();
+    }
 
-        return new Message(MessageType.Message, []);
+
+    public void Dispose()
+    {
+        try
+        {
+            if (webSocket.State == WebSocketState.Open)
+                webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing connection", CancellationToken.None);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+
+        QueueToSend.Clear();
     }
 }
