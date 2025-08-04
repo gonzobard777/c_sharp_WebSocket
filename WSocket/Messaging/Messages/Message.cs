@@ -9,7 +9,7 @@ public class Message
     public readonly MessageType Type;
 
     // Полное исходное сообщение в том виде как оно пришло из сокета.
-    public readonly byte[] Raw;
+    public byte[] Raw { get; set; }
 
     // Длина заголовка, в штуках байт.
     // Один заголовок может состоять из нескольких блоков.
@@ -21,11 +21,28 @@ public class Message
     // "Сырые" данные - это строка, в которую десериализован JSON-объект.
     private string _dataRaw = "";
 
+    public Message()
+    {
+    }
+
     public Message(MessageType messageType, byte[] raw, int headerLength = 1)
     {
         Type = messageType;
         Raw = raw;
         HeaderLength = headerLength;
+    }
+
+    /// <summary>
+    /// Используется для отправки сообщения на клиент.
+    /// </summary>
+    /// <param name="messageType"></param>
+    /// <param name="content">Данные</param>
+    public Message(MessageType messageType, string content)
+    {
+        var contentBytes = Encoding.UTF8.GetBytes(content);
+        Raw = new byte[1 + contentBytes.Length];
+        Raw[0] = (byte)messageType;
+        Array.Copy(contentBytes, 0, Raw, 1, contentBytes.Length);
     }
 
     /**
@@ -41,19 +58,5 @@ public class Message
                 _dataRaw = Encoding.UTF8.GetString(Raw, HeaderLength, Raw.Length - HeaderLength);
             return _dataRaw;
         }
-    }
-
-
-    /// <summary>
-    /// Используется для отправки сообщения на клиент.
-    /// </summary>
-    /// <param name="messageType"></param>
-    /// <param name="content">Данные</param>
-    public Message(MessageType messageType, string content)
-    {
-        var contentBytes = Encoding.UTF8.GetBytes(content);
-        Raw = new byte[1 + contentBytes.Length];
-        Raw[0] = (byte)messageType;
-        Array.Copy(contentBytes, 0, Raw, 1, contentBytes.Length);
     }
 }

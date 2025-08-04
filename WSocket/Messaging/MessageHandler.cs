@@ -21,7 +21,7 @@ public class MessageHandler : IDisposable
         var messageType = (MessageType)bytes[0];
         switch (messageType)
         {
-            // Найти/создать группу. Добавить туда пользователя.
+            // Найти/создать группу. Добавить в нее пользователя.
             case MessageType.JoinGroup:
             {
                 // 1. Определить groupId. По типу группы и доп.данным.
@@ -56,6 +56,10 @@ public class MessageHandler : IDisposable
 
             case MessageType.GroupMessage:
             {
+                var groupId = "";
+                Groups.TryGetValue(groupId, out var group);
+                if (group == null) return;
+                connection.Send(new Message { Raw = bytes });
                 break;
             }
         }
