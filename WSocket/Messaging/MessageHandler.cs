@@ -1,8 +1,8 @@
 ﻿using System.Collections.Concurrent;
-using System.Text;
 using WSocket.Contracts;
 using WSocket.Messaging.Groups;
 using WSocket.Messaging.Messages;
+using WSocket.Utils;
 
 namespace WSocket.Messaging;
 
@@ -56,7 +56,7 @@ public class MessageHandler : IDisposable
 
             case MessageType.GroupMessage:
             {
-                var groupId = "";
+                var groupId = Converter.GetString(bytes, 1, 20);
                 Groups.TryGetValue(groupId, out var group);
                 if (group == null) return;
                 connection.Send(new Message { Raw = bytes });

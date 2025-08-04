@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using WSocket.Contracts;
+using WSocket.Utils;
 
 namespace WSocket.Messaging.Messages;
 
@@ -36,13 +37,12 @@ public class Message
     /// Используется для отправки сообщения на клиент.
     /// </summary>
     /// <param name="messageType"></param>
-    /// <param name="content">Данные</param>
-    public Message(MessageType messageType, string content)
+    /// <param name="data">Данные.</param>
+    public Message(MessageType messageType, string data)
     {
-        var contentBytes = Encoding.UTF8.GetBytes(content);
-        Raw = new byte[1 + contentBytes.Length];
+        var dataBytes = Encoding.UTF8.GetBytes(data);
+        Raw = Converter.GetRangeBytes(dataBytes, 0, dataBytes.Length, 1);
         Raw[0] = (byte)messageType;
-        Array.Copy(contentBytes, 0, Raw, 1, contentBytes.Length);
     }
 
     /**
@@ -54,8 +54,13 @@ public class Message
         get
         {
             if (_dataRaw == "" && HeaderLength < Raw.Length)
+            {
                 // Все, что не заголовок, является данными.
-                _dataRaw = Encoding.UTF8.GetString(Raw, HeaderLength, Raw.Length - HeaderLength);
+                var skipCount = HeaderLength;
+                var takeCount = Raw.Length - HeaderLength;
+                _dataRaw = Encoding.UTF8.GetString(Raw, skipCount, takeCount);
+            }
+
             return _dataRaw;
         }
     }
