@@ -2,7 +2,6 @@
 using WSocket.Contracts;
 using WSocket.Messaging.Groups;
 using WSocket.Messaging.Messages;
-using WSocket.Utils;
 
 namespace WSocket.Messaging;
 
@@ -18,7 +17,7 @@ public class MessageHandler : IDisposable
     /// <param name="cancellationToken"></param>
     public async Task Run(byte[] bytes, ClientConnection connection, CancellationToken cancellationToken)
     {
-        var messageType = (MessageType)bytes[0];
+        var messageType = Message.ParseType(bytes);
         switch (messageType)
         {
             // Найти/создать группу. Добавить в нее пользователя.
@@ -28,12 +27,12 @@ public class MessageHandler : IDisposable
                 var groupId = "";
                 Func<string, Group>? groupCreator = null;
 
-                var groupType = (GroupType)bytes[1];
+                var groupType = MessageGroupBased.ParseGroupType(bytes);
                 switch (groupType)
                 {
                     case GroupType.CursorMoving:
                         var parsedMessage = new CursorMovingMessageJoinGroup(messageType, groupType, bytes);
-                        groupId = CursorMovingGroup.GenerateId(parsedMessage);
+                        groupId = CursorMovingGroup.CreateId(parsedMessage);
                         groupCreator = _ => new CursorMovingGroup();
                         break;
                 }
@@ -44,10 +43,10 @@ public class MessageHandler : IDisposable
                     var group = Groups.GetOrAdd(groupId, groupCreator);
 
                     // 3. Добавить пользователя в группу.
-                    var result = group.AddConnection(connection) ? groupId : "";
+                    group.AddConnection(connection);
 
                     // 4. Отправить результат клиенту.
-                    connection.Send(new Message(MessageType.JoinGroupResponse, result));
+                    connection.Send(new Message(MessageType.JoinGroupResponse, groupId));
                 }
 
                 break;
@@ -56,7 +55,7 @@ public class MessageHandler : IDisposable
 
             case MessageType.GroupMessage:
             {
-                var groupId = Converter.GetString(bytes, 1, 20);
+                var groupId = MessageGroupBased.ParseGroupId(bytes);
                 Groups.TryGetValue(groupId, out var group);
                 if (group == null) return;
                 connection.Send(new Message { Raw = bytes });

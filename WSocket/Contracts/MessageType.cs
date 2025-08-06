@@ -1,6 +1,10 @@
 ﻿namespace WSocket.Contracts;
 
-public enum MessageType : byte
+/// <summary>
+/// Первые два байта сообщения.
+/// Количество возможных типов: 0 to 65535.
+/// </summary>
+public enum MessageType : ushort
 {
     // Взаимодействие с группой.
     JoinGroup = 0,

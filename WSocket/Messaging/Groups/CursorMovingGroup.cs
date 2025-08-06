@@ -4,8 +4,8 @@ namespace WSocket.Messaging.Groups;
 
 public class CursorMovingGroup : Group
 {
-    public static string GenerateId(CursorMovingMessageJoinGroup message)
+    public static string CreateId(CursorMovingMessageJoinGroup messageJoin)
     {
-        return $"{(byte)message.GroupType}-{message.GetData()?.Id}";
+        return $"{(ushort)messageJoin.GroupType}-{messageJoin.GetData()?.Id}";
     }
 }

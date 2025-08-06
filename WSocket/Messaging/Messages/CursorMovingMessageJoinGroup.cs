@@ -3,7 +3,7 @@ using WSocket.Contracts;
 
 namespace WSocket.Messaging.Messages;
 
-public class CursorMovingMessageJoinGroup : MessageJoinGroup
+public class CursorMovingMessageJoinGroup : MessageGroupBased
 {
     public CursorMovingMessageJoinGroup(MessageType messageType, GroupType groupType, byte[] raw) : base(messageType, groupType, raw)
     {
