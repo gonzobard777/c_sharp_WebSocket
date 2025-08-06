@@ -44,7 +44,7 @@ public static class Converter
     ///    byte1 = 00000001 = 1
     ///    byte2 = 00000010 = 2
     /// присоединим к byte1 справа byte2, получим:
-    ///    0000000100000010 = 258  
+    ///    0000000100000010 = 258
     /// </summary>
     public static ushort BytesToUshort(byte byte1, byte byte2)
     {

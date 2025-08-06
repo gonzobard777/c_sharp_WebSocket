@@ -45,8 +45,10 @@ public class MessageHandler : IDisposable
                     // 3. Добавить пользователя в группу.
                     group.AddConnection(connection);
 
-                    // 4. Отправить результат клиенту.
-                    connection.Send(new Message(MessageType.JoinGroupResponse, groupId));
+                    // 4. Отправить клиенту Id группы, к которой он присоединился.
+                    connection.Send(
+                        new Message(MessageType.JoinGroupResponse, groupId)
+                    );
                 }
 
                 break;
