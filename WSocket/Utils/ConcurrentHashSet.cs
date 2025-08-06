@@ -2,6 +2,10 @@
 
 namespace WSocket.Utils;
 
+/// <summary>
+/// Конкурентное множество.
+/// Сделано на основе ConcurrentDictionary.
+/// </summary>
 public class ConcurrentHashSet<T> : ConcurrentDictionary<T, byte>
     where T : notnull
 {

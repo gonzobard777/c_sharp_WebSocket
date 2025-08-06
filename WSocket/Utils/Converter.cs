@@ -64,7 +64,7 @@ public static class Converter
         byte byte1 = 0;
         byte byte2 = 0;
 
-        for (int i = 15; i >= 8; i--)
+        for (var i = 15; i >= 8; i--)
         {
             if ((value & (1 << i)) == 0)
                 continue;
@@ -72,7 +72,7 @@ public static class Converter
             byte1 |= num;
         }
 
-        for (int i = 7; i >= 0; i--)
+        for (var i = 7; i >= 0; i--)
         {
             if ((value & (1 << i)) == 0)
                 continue;

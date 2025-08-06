@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+
+<br/>
+<button id="joinButton">JoinGroup</button>
+<br/>
+<br/>
+<hr/>
+<input id="sendMessage"/>
+<button id="sendButton">Custom</button>
+
+
+<script>
+  'use strict';
+  const sendMessage = document.getElementById('sendMessage');
+  const sendButton = document.getElementById('sendButton');
+  const joinButton = document.getElementById('joinButton');
+
+  let groupId = '';
+  const clientId = Math.floor(Math.random() * (10_000 - 1 + 1) + 1)
+
+  const socket = new WebSocket('ws://localhost:5208/ws');
+  socket.onopen = function (event) {
+    console.log(`opened`);
+  }
+
+  sendButton.onclick = function () {
+    if (!isConnected()) return;
+    const data = sendMessage.value;
+    console.log('custom send', `"${data}"`);
+    socket.send(data);
+  };
+
+  joinButton.onclick = function () {
+    if (!isConnected()) return;
+    const messageType = ushortToBits(0);
+    const groupType = ushortToBits(0);
+    const contentBytes = objToUint8Arr({id: `${42}`});
+    socket.send(new Uint8Array([...messageType, ...groupType, ...contentBytes]))
+  };
+
+  socket.onmessage = async function (event) {
+    const bytes = await blobToUint8Array(event.data);
+    const messageType = bytesToUshort(bytes[0], bytes[1]);
+
+    switch (messageType) {
+      // JoinGroupResponse
+      case 1: {
+        const groupIdBytes = bytes.slice(2);
+        groupId = uint8ArrToStr(groupIdBytes);
+        console.log(`received, groupId: "${groupId}"`);
+        break;
+      }
+      // GroupMessage
+      case 3: {
+        const groupIdBytes = bytes.slice(2, 2 + 50);
+        const messageBytes = bytes.slice(2 + 50);
+        const groupId = uint8ArrToStr(groupIdBytes);
+        const message = uint8ArrToStr(messageBytes);
+        console.log(`received, groupId: "${groupId}", message: "${message}"`);
+        break;
+      }
+      default:
+        console.log(`received unknown`,);
+    }
+
+  }
+
+  window.addEventListener('mousemove', (event) => {
+    if (groupId === '') return;
+    const point = [event.pageX, event.pageY];
+    console.log(point);
+
+    const messageType = ushortToBits(3);
+    const groupIdBytes = new Uint8Array(50)
+    strToUint8Arr(groupId, groupIdBytes);
+    const contentBytes = objToUint8Arr({point, clientId});
+    socket.send(new Uint8Array([...messageType, ...groupIdBytes, ...contentBytes]))
+  });
+
+
+  function isConnected() {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      alert('socket not connected');
+      return false;
+    }
+    return true;
+  }
+
+
+  function strToUint8Arr(str, uint8Arr) {
+    if (uint8Arr) {
+      return new TextEncoder().encodeInto(str, uint8Arr)
+    }
+    return new TextEncoder().encode(str);
+  }
+
+  function objToUint8Arr(obj) {
+    const str = JSON.stringify(obj);
+    return strToUint8Arr(str);
+  }
+
+  function uint8ArrToStr(arr) {
+    return new TextDecoder('utf-8')
+      .decode(arr)
+      .replace(/\0.*$/g, '');
+  }
+
+  function blobToUint8Array(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const arrayBuffer = event.target.result;
+        const uint8Array = new Uint8Array(arrayBuffer);
+        resolve(uint8Array);
+      };
+      reader.onerror = function (error) {
+        reject(error);
+      };
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+
+
+  /**
+   * Конвертирует два байта в number.
+   * Используется порядок big-endian.
+   * Например.
+   * Пришло два байта:
+   *    byte1 = 00000001 = 1
+   *    byte2 = 00000010 = 2
+   * присоединим к byte1 <-- справа byte2, получим:
+   *    0000000100000010 = 258
+   */
+  function bytesToUshort(byte1, byte2) {
+    return (byte1 << 8) | byte2;
+  }
+
+  /**
+   * Конвертирует ushort в два байта.
+   * Используется порядок big-endian.
+   * Например.
+   * Пришло число 65000, в двоичном представлении: 1111110111101000
+   *   byte1 = 11111101 = 253
+   *   byte2 = 11101000 = 232
+   */
+  function ushortToBits(value) {
+    let byte1 = 0;
+    let byte2 = 0;
+
+    for (let i = 15; i >= 8; i--) {
+      if ((value & (1 << i)) == 0)
+        continue;
+      const num = 1 << (i - 8);
+      byte1 |= num;
+    }
+
+    for (let i = 7; i >= 0; i--) {
+      if ((value & (1 << i)) == 0)
+        continue;
+      const num = 1 << i;
+      byte2 |= num;
+    }
+
+    return [byte1, byte2];
+  }
+
+</script>
+
+</body>
+</html>

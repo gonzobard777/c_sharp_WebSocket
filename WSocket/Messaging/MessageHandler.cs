@@ -60,7 +60,7 @@ public class MessageHandler : IDisposable
                 var groupId = MessageGroupBased.ParseGroupId(bytes);
                 Groups.TryGetValue(groupId, out var group);
                 if (group == null) return;
-                connection.Send(new Message { Raw = bytes });
+                group.Broadcast(new Message { Raw = bytes }, connection);
                 break;
             }
         }
