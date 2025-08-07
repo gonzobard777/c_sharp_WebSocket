@@ -4,11 +4,17 @@ using WSocket.Messaging.Messages;
 
 namespace WSocket.Messaging;
 
-public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler) : IDisposable
+public class ClientConnection : IDisposable
 {
-    public WebSocket WebSocket { get; } = webSocket;
+    public WebSocket WebSocket { get; }
     private ConcurrentQueue<Message> QueueToSend { get; } = [];
-    private MessageHandler MessageHandler { get; } = messageHandler;
+    private MessageHandler MessageHandler { get; }
+
+    public ClientConnection(WebSocket webSocket, MessageHandler messageHandler)
+    {
+        WebSocket = webSocket;
+        MessageHandler = messageHandler;
+    }
 
     public async Task Run(CancellationToken cancellationToken)
     {
@@ -85,8 +91,8 @@ public class ClientConnection(WebSocket webSocket, MessageHandler messageHandler
     {
         try
         {
-            if (webSocket.State == WebSocketState.Open)
-                webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing connection", CancellationToken.None);
+            if (WebSocket.State == WebSocketState.Open)
+                WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing connection", CancellationToken.None);
         }
         catch (Exception e)
         {

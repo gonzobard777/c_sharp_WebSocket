@@ -3,9 +3,14 @@ using WSocket.Messaging;
 
 namespace WSocket.Controllers;
 
-public class WebSocketController(MessageHandler messageHandler) : ControllerBase
+public class WebSocketController : ControllerBase
 {
-    public MessageHandler MessageHandler { get; } = messageHandler;
+    private MessageHandler MessageHandler { get; }
+
+    public WebSocketController(MessageHandler messageHandler)
+    {
+        MessageHandler = messageHandler;
+    }
 
     [Route("/ws")]
     public async Task Get(CancellationToken cancellationToken)

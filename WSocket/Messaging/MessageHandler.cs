@@ -7,7 +7,7 @@ namespace WSocket.Messaging;
 
 public class MessageHandler : IDisposable
 {
-    private readonly ConcurrentDictionary<string, Group> Groups = new();
+    private ConcurrentDictionary<string, Group> Groups { get; } = new();
 
     /// <summary>
     /// Обработка нового сообщения.
