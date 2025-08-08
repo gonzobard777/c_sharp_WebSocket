@@ -42,20 +42,21 @@ public class ClientConnection : IDisposable
     /// <summary>
     /// Добавить новое сообщение в очередь для отправки.
     /// </summary>
-    /// <param name="message"></param>
-    public void Send(Message message) => QueueToSend.Enqueue(message);
+    public void Send(Message message)
+    {
+        if (WebSocket.State == WebSocketState.Open)
+            QueueToSend.Enqueue(message);
+    }
 
     /// <summary>
     /// Процесс отправки сообщений из очереди.
     /// </summary>
     private async Task Sending(CancellationToken cancellationToken)
     {
-        while (!cancellationToken.IsCancellationRequested)
+        while (WebSocket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
         {
             if (QueueToSend.TryDequeue(out var message))
-            {
                 await WebSocket.SendAsync(message.Raw, WebSocketMessageType.Binary, true, cancellationToken);
-            }
 
             if (QueueToSend.IsEmpty)
                 await Task.Delay(500, cancellationToken);
@@ -71,11 +72,7 @@ public class ClientConnection : IDisposable
         {
             received = await WebSocket.ReceiveAsync(chunkBuffer, cancellationToken);
             if (received.CloseStatus.HasValue)
-            {
-                // Если получен статус закрытия, тогда в ответ отправить статус закрытия и остановить чтение.
-                await WebSocket.CloseAsync(received.CloseStatus.Value, received.CloseStatusDescription, cancellationToken);
                 return null;
-            }
 
             if (received.Count > 0)
             {
@@ -91,13 +88,11 @@ public class ClientConnection : IDisposable
     {
         try
         {
-            if (WebSocket.State == WebSocketState.Open)
-                WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing connection", CancellationToken.None);
+            WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing connection", CancellationToken.None);
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
-            throw;
         }
 
         QueueToSend.Clear();

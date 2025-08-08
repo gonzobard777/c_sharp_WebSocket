@@ -21,6 +21,7 @@ public class WebSocketController : ControllerBase
             var connection = new ClientConnection(webSocket, MessageHandler);
             try
             {
+                MessageHandler.AddConnection(connection);
                 await connection.Run(cancellationToken);
             }
             finally

@@ -15,6 +15,10 @@ public class Program
 
 
         // Конфигурирование.
+        var appLifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+        var messageHandler = app.Services.GetRequiredService<MessageHandler>();
+        appLifetime.ApplicationStopping.Register(() => messageHandler.Dispose());
+
         var webSocketOptions = new WebSocketOptions { KeepAliveInterval = TimeSpan.FromMinutes(2) };
         app.UseWebSockets(webSocketOptions);
 

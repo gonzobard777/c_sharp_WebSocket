@@ -2,11 +2,16 @@
 using WSocket.Contracts;
 using WSocket.Messaging.Groups;
 using WSocket.Messaging.Messages;
+using WSocket.Utils;
 
 namespace WSocket.Messaging;
 
 public class MessageHandler : IDisposable
 {
+    // Группа "Все". Тут зарегистрированы все клиентские соединенения. 
+    private ConcurrentHashSet<ClientConnection> GroupAll { get; } = [];
+
+    // <IdГруппы> <-> Группа
     private ConcurrentDictionary<string, Group> Groups { get; } = new();
 
     /// <summary>
@@ -67,15 +72,28 @@ public class MessageHandler : IDisposable
     }
 
 
+    #region Клиентские соединения
+
+    public bool AddConnection(ClientConnection connection) => GroupAll.Add(connection);
+
     public void DisposeClientConnection(ClientConnection connection)
     {
+        connection.Dispose();
         foreach (var (_, group) in Groups)
-            group.DisposeConnection(connection);
+            group.RemoveConnection(connection);
+        GroupAll.Remove(connection);
     }
+
+    #endregion Клиентские соединения
 
 
     public void Dispose()
     {
+        foreach (var (connection, _) in GroupAll)
+            connection.Dispose();
+
+        GroupAll.Clear();
+
         foreach (var (groupId, group) in Groups)
         {
             group.Dispose();

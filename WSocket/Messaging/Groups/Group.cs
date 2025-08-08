@@ -5,6 +5,7 @@ namespace WSocket.Messaging.Groups;
 
 public abstract class Group : IDisposable
 {
+    // Члены группы.
     protected ConcurrentHashSet<ClientConnection> ClientConnections { get; } = [];
 
     /// <summary>
@@ -32,18 +33,12 @@ public abstract class Group : IDisposable
     public bool AddConnection(ClientConnection connection) => ClientConnections.Add(connection);
     public bool RemoveConnection(ClientConnection connection) => ClientConnections.Remove(connection);
 
-    public void DisposeConnection(ClientConnection connection)
-    {
-        connection.Dispose();
-        RemoveConnection(connection);
-    }
-
     #endregion Клиентские соединения
 
 
     public void Dispose()
     {
         foreach (var (connection, _) in ClientConnections)
-            DisposeConnection(connection);
+            RemoveConnection(connection);
     }
 }
