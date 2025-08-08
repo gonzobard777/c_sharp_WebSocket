@@ -6,7 +6,7 @@ namespace WSocket.Messaging;
 
 public class ClientConnection : IDisposable
 {
-    public WebSocket WebSocket { get; }
+    private WebSocket WebSocket { get; }
     private ConcurrentQueue<Message> QueueToSend { get; } = [];
     private MessageHandler MessageHandler { get; }
 
