@@ -15,6 +15,8 @@ public class Program
 
 
         // Конфигурирование.
+        
+        // При завершении работы приложения надо закрыть вебсокеты.
         var appLifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
         var messageHandler = app.Services.GetRequiredService<MessageHandler>();
         appLifetime.ApplicationStopping.Register(() => messageHandler.Dispose());
