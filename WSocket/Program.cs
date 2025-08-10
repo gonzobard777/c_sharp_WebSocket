@@ -18,7 +18,7 @@ public class Program
         var appLifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
         var messageHandler = app.Services.GetRequiredService<MessageHandler>();
         appLifetime.ApplicationStopping.Register(() => messageHandler.Dispose());
-
+        // Вебсокет должен быть определен до UseEndpoints.
         var webSocketOptions = new WebSocketOptions { KeepAliveInterval = TimeSpan.FromMinutes(2) };
         app.UseWebSockets(webSocketOptions);
 
