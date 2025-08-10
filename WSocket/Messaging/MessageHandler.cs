@@ -51,7 +51,7 @@ public class MessageHandler : IDisposable
                     group.AddConnection(connection);
 
                     // 4. Отправить клиенту Id группы, к которой он присоединился.
-                    connection.Send(
+                    connection.AddToSendQueue(
                         new Message(MessageType.JoinGroupResponse, groupId)
                     );
                 }

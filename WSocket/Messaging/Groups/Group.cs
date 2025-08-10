@@ -24,7 +24,7 @@ public abstract class Group : IDisposable
             var connection = pair.Key;
             if (excludeSender && connection == sender)
                 return;
-            connection.Send(message);
+            connection.AddToSendQueue(message);
         });
     }
 

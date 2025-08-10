@@ -40,9 +40,9 @@ public class ClientConnection : IDisposable
     }
 
     /// <summary>
-    /// Добавить новое сообщение в очередь для отправки.
+    /// Добавить новое сообщение в очередь отправки.
     /// </summary>
-    public void Send(Message message)
+    public void AddToSendQueue(Message message)
     {
         if (WebSocket.State == WebSocketState.Open)
             QueueToSend.Enqueue(message);
