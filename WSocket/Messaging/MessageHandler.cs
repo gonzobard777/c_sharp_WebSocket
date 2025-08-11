@@ -1,7 +1,9 @@
 ﻿using System.Collections.Concurrent;
+using Newtonsoft.Json;
 using WSocket.Contracts;
 using WSocket.Messaging.Groups;
 using WSocket.Messaging.Messages;
+using WSocket.Messaging.Messages.Responses;
 using WSocket.Utils;
 
 namespace WSocket.Messaging;
@@ -31,12 +33,14 @@ public class MessageHandler : IDisposable
                 // 1. Определить groupId. По типу группы и доп.данным.
                 var groupId = "";
                 Func<string, Group>? groupCreator = null;
+                var messageId = "";
 
                 var groupType = MessageGroupBased.ParseGroupType(bytes);
                 switch (groupType)
                 {
                     case GroupType.CursorMoving:
                         var parsedMessage = new CursorMovingMessageJoinGroup(messageType, groupType, bytes);
+                        messageId = parsedMessage.GetData()?.MessageId;
                         groupId = CursorMovingGroup.CreateId(parsedMessage);
                         groupCreator = _ => new CursorMovingGroup();
                         break;
@@ -51,14 +55,16 @@ public class MessageHandler : IDisposable
                     group.AddConnection(connection);
 
                     // 4. Отправить клиенту Id группы, к которой он присоединился.
+                    var data = JsonConvert.SerializeObject(
+                        new JoinGroupResponse { GroupId = groupId, MessageId = messageId }
+                    );
                     connection.AddToSendQueue(
-                        new Message(MessageType.JoinGroupResponse, groupId)
+                        new Message(MessageType.JoinGroupResponse, data)
                     );
                 }
 
                 break;
             }
-
 
             case MessageType.GroupMessage:
             {

@@ -18,4 +18,5 @@ public class CursorMovingMessageJoinGroup : MessageGroupBased
 public class CursorMovingData
 {
     public string Id { get; set; }
+    public string MessageId { get; set; }
 }
