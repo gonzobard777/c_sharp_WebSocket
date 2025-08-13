@@ -13,4 +13,7 @@ public enum MessageType : ushort
 
     // Сообщение для членов группы.
     GroupMessage = 3,
+    
+    // Пинг.
+    Ping = 4,
 }
