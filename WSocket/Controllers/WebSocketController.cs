@@ -18,11 +18,11 @@ public class WebSocketController : ControllerBase
         if (HttpContext.WebSockets.IsWebSocketRequest)
         {
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-            var connection = new ClientConnection(webSocket, MessageHandler);
+            var connection = new ClientConnection(webSocket, MessageHandler, cancellationToken);
             try
             {
                 MessageHandler.AddConnection(connection);
-                await connection.Run(cancellationToken);
+                await connection.Run();
             }
             finally
             {

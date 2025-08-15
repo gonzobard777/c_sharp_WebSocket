@@ -22,7 +22,7 @@ public class MessageHandler : IDisposable
     /// <param name="bytes">Полное исходное сообщение в том виде как оно пришло из сокета.</param>
     /// <param name="connection">Клиентское соединение, из которого пришло сообщение.</param>
     /// <param name="cancellationToken"></param>
-    public async Task Run(byte[] bytes, ClientConnection connection, CancellationToken cancellationToken)
+    public async Task Run(byte[] bytes, ClientConnection connection)
     {
         var messageType = Message.ParseType(bytes);
         switch (messageType)

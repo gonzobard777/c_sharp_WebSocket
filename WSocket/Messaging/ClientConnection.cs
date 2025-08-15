@@ -9,26 +9,43 @@ public class ClientConnection : IDisposable
     private WebSocket WebSocket { get; }
     private ConcurrentQueue<Message> QueueToSend { get; } = [];
     private MessageHandler MessageHandler { get; }
+    private CancellationToken CancellationToken { get; }
 
-    public ClientConnection(WebSocket webSocket, MessageHandler messageHandler)
+    // Буффер для чтения сообщения из сокета, т.к. заранее неизвестен размер сообщения. 
+    private ArraySegment<byte> ChunkBuffer { get; set; } = new(new byte[1024 * 5]); // 5KB(Kilobyte)
+
+    // Время, через которое надо снова проверить QueueToSend, если очередь пуста.
+    // Чем выше значение, тем меньше интерактива.
+    // Например, стоит задача отображать движение курсоров разных пользователей.
+    // Так вот, интервал 500 миллисекунд приведет к тому, что движения курсоров будет более дергано.
+    private int SendingQueueCheckIntervalMilliseconds { get; set; } = 7;
+
+
+    public ClientConnection(WebSocket webSocket, MessageHandler messageHandler, CancellationToken cancellationToken)
     {
         WebSocket = webSocket;
         MessageHandler = messageHandler;
+        CancellationToken = cancellationToken;
     }
 
-    public async Task Run(CancellationToken cancellationToken)
+    public bool IsReady => (
+        WebSocket.State == WebSocketState.Open &&
+        !CancellationToken.IsCancellationRequested
+    );
+
+    public async Task Run()
     {
         // Отправить.
-        var sending = Task.Run(async () => await Sending(cancellationToken), cancellationToken);
+        var sending = Task.Run(async () => await Sending(), CancellationToken);
 
         // Получить.
         try
         {
-            while (WebSocket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
+            while (IsReady)
             {
-                var messageBytes = await Read(cancellationToken);
+                var messageBytes = await Read();
                 if (messageBytes is { Length: > 0 })
-                    MessageHandler.Run(messageBytes, this, cancellationToken);
+                    MessageHandler.Run(messageBytes, this);
             }
         }
         catch (Exception e)
@@ -44,41 +61,45 @@ public class ClientConnection : IDisposable
     /// </summary>
     public void AddToSendQueue(Message message)
     {
-        if (WebSocket.State == WebSocketState.Open)
-            QueueToSend.Enqueue(message);
+        QueueToSend.Enqueue(message);
     }
 
     /// <summary>
     /// Процесс отправки сообщений из очереди.
     /// </summary>
-    private async Task Sending(CancellationToken cancellationToken)
+    private async Task Sending()
     {
-        while (WebSocket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
+        while (IsReady)
         {
             if (QueueToSend.TryDequeue(out var message))
-                await WebSocket.SendAsync(message.Raw, WebSocketMessageType.Binary, true, cancellationToken);
+                await WebSocket.SendAsync(message.Raw, WebSocketMessageType.Binary, true, CancellationToken);
 
             if (QueueToSend.IsEmpty)
-                await Task.Delay(500, cancellationToken);
+                await Task.Delay(SendingQueueCheckIntervalMilliseconds, CancellationToken);
         }
     }
 
-    public async Task<byte[]?> Read(CancellationToken cancellationToken)
+    /// <summary>
+    /// Прочитать одно сообщение из сокета:
+    ///    1. Повиснуть на await WebSocket.ReceiveAsync пока не придут байты.
+    ///    2. Читать байты кусочками в ChunkBuffer.
+    ///    3. Собирать результирующее сообщение в memoryBuffer, добавляя к нему новую порцию из ChunkBuffer. 
+    /// </summary>
+    public async Task<byte[]?> Read()
     {
         WebSocketReceiveResult received;
-        var chunkBuffer = new ArraySegment<byte>(new byte[1024 * 5]); // 5KB(Kilobyte)
-        using var memoryBuffer = new MemoryStream(chunkBuffer.Count);
+        using var memoryBuffer = new MemoryStream(ChunkBuffer.Count);
         do
         {
-            received = await WebSocket.ReceiveAsync(chunkBuffer, cancellationToken);
+            received = await WebSocket.ReceiveAsync(ChunkBuffer, CancellationToken);
             if (received.CloseStatus.HasValue)
                 return null;
 
             if (received.Count > 0)
             {
-                memoryBuffer.Write(chunkBuffer.Array!, 0, received.Count);
+                memoryBuffer.Write(ChunkBuffer.Array!, 0, received.Count);
             }
-        } while (!received.EndOfMessage && !cancellationToken.IsCancellationRequested);
+        } while (!received.EndOfMessage && IsReady);
 
         return memoryBuffer.ToArray();
     }
